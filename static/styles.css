@@ -1,0 +1,19 @@
+.flip {
+    transform: scaleX(-1);
+}
+.playerid_input {
+    color: white;
+    max-width: 10em;
+}
+
+.xs2 {
+    align-self: center;
+}
+
+table.table tbody td {
+    height: 2em;
+}
+
+.card {
+    margin-bottom: 1em;
+}
