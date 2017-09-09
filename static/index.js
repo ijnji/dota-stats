@@ -90,7 +90,8 @@ const app = new Vue({
             {
             [hero.id]: {
               name: hero.localized_name,
-              roles: [hero.primary_attr, hero.attack_type, ...hero.roles]
+              attributes: [hero.primary_attr, hero.attack_type],
+              roles: ROLES[hero.localized_name]
             }
             })));
       },

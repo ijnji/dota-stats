@@ -43,7 +43,12 @@ const Roles =
         if (!this.heroes || !this.selfHeroes.length) return [];
         const roles = new Map();
         for (const sh of this.selfHeroes) {
-          for (const role of this.heroes[sh.hero_id].roles) {
+          let sources = [
+            ...this.heroes[sh.hero_id].attributes,
+            ...Object.keys(this.heroes[sh.hero_id].roles)
+          ];
+          for (const role of sources) {
+            if (role === 'Complexity') continue;
             let r = roles.get(role);
             if (r === undefined) {
               r = { name: role, wins: 0, games: 0 };
