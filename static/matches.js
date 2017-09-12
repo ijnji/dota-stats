@@ -90,27 +90,22 @@ function scatterWithHistograms(x, x_title, y, y_title, facet, facet_title) {
   };
 }
 
-// Facet must be a binary variable, for aggregate: "mean" to make sense as a %.
-// TODO(cjiang): figure out if vega-lite can do nested field access instead.
-const winFacet = {
-  field: "win", type: "quantitative",
-  scale: { scheme: "redyellowblue", extent: [0, 1] },
-};
-
-const kaD = scatterWithHistograms(
-  { field: "d", type: "quantitative" }, "Deaths",
-  { field: "ka", type: "quantitative" }, "Kills + Assists",
-  winFacet, "Win");
-
-const kaDuration = scatterWithHistograms(
-  { field: "duration_minutes_bin", type: "nominal" }, "Duration [Minutes]",
-  { field: "ka", type: "quantitative" }, "Kills + Assists",
-  winFacet, "Win");
-
 const Matches =
   Vue.component('ds-matches', {
     template: `
 <div>
+  <v-card class="facet_input">
+    <v-card-text>
+      <v-select
+        :items="knownFacetNames"
+        v-model="selectedFacetName"
+        label="Select facet"
+        dark
+        item-value="text"
+      ></v-select>
+    </v-card-text>
+  </v-card>
+        
   <v-card light raised
         class="elevation-3" style="width: 780px;">
     <v-card-title primary-title>
@@ -129,9 +124,27 @@ const Matches =
 </div>
 `,
     watch: {
-      playerMatches: function (ms) {
-        this.showPlot("#ka_d", kaD, ms);
-        this.showPlot("#ka_duration", kaDuration, ms);
+      needsRender: function () {
+        // Facet must be a binary variable, for aggregate: "mean" to make sense as a %.
+        // TODO(cjiang): figure out if vega-lite can do nested field access instead.
+        const field = this.selectedFacetName === "win" ? "win" : ("bhv_" + this.selectedFacetName);
+        const facet = {
+          field, type: "quantitative",
+          scale: { scheme: "redyellowblue", extent: [0, 1] },
+        };
+
+        const kaD = scatterWithHistograms(
+          { field: "d", type: "quantitative" }, "Deaths",
+          { field: "ka", type: "quantitative" }, "Kills + Assists",
+          facet, this.selectedFacetName);
+
+        const kaDuration = scatterWithHistograms(
+          { field: "duration_minutes_bin", type: "nominal" }, "Duration [Minutes]",
+          { field: "ka", type: "quantitative" }, "Kills + Assists",
+          facet, this.selectedFacetName);
+
+        this.showPlot("#ka_d", kaD, this.playerMatches);
+        this.showPlot("#ka_duration", kaDuration, this.playerMatches);
       }
     },
     methods: {
@@ -175,6 +188,13 @@ const Matches =
     },
 
     props: ["heroes"],
+    data() {
+      return {
+        // Currently the "Complexity" role is always present and does not actually facet.
+        knownFacetNames: ["win", ...KNOWN_ATTRIBUTES, ...KNOWN_ROLES.slice(0, -1)],
+        selectedFacetName: "win",
+      }
+    },
     asyncComputed: {
       playerMatches: {
         async get() {
@@ -212,5 +232,12 @@ const Matches =
         },
         default: []
       },
-    }
+    },
+    computed: {
+      needsRender() {
+        this.playerMatches;
+        this.selectedFacetName;
+        return Date.now();
+      },
+    },
   });
