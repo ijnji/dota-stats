@@ -1,12 +1,9 @@
-function scatterWithHistogramsSpec(x, x_title, y, y_title) {
-  const color = {
-    field: "win", type: "quantitative",
-    scale: { scheme: "redyellowblue", extent: [0, 1] },
-  };
+function scatterWithHistograms(x, x_title, y, y_title, facet, facet_title) {
   const emptyAxis = { title: "", labels: false, domain: false, ticks: false };
   const scatterSize = 530;
 
   return {
+    vlSpec: {
     height: 600,
     hconcat: [
       {
@@ -26,35 +23,35 @@ function scatterWithHistogramsSpec(x, x_title, y, y_title) {
             stack: "none",
             axis: emptyAxis
           },
-          color,
+          color: facet,
         }
       },
       {
         vconcat: [
           {
-            width: scatterSize,
-            height: scatterSize,
-            mark: "point",
-            encoding: {
-              y: {
-                ...y,
-                axis: { title: "", grid: true }
+              width: scatterSize,
+              height: scatterSize,
+              mark: "point",
+              encoding: {
+                y: {
+                  ...y,
+                  axis: { title: "", grid: true }
+                },
+                x: {
+                  ...x,
+                  axis: { title: "", grid: true }
+                },
+                color: {
+                  ...facet,
+                  aggregate: "mean",
+                  legend: { title: facet_title + " %", format: ".0p" }
+                },
+                size: {
+                  aggregate: "count",
+                  type: "quantitative",
+                  legend: { title: "# Games" }
+                }
               },
-              x: {
-                ...x,
-                axis: { title: "", grid: true }
-              },
-              color: {
-                ...color,
-                aggregate: "mean",
-                legend: { title: "Win %", format: ".0p" }
-              },
-              size: {
-                aggregate: "count",
-                type: "quantitative",
-                legend: { title: "# Games" }
-              }
-            },
           },
           {
             height: 40,
@@ -73,21 +70,41 @@ function scatterWithHistogramsSpec(x, x_title, y, y_title) {
                 stack: "none",
                 axis: emptyAxis
               },
-              color,
+              color: facet,
             }
           }
         ]
       }
     ],
-  };
+  },
+  tooltipOpts: {
+    showAllFields: true, fields: [
+      { field: "ka", title: "Kills + Assists" },
+      { field: "d", title: "Deaths" },
+      { field: "duration_minutes_bin", title: "Duration [Minutes]" },
+      // https://github.com/vega/vega-tooltip/issues/129
+      { field: "count_*", aggregate: "count", title: "# Games" },
+      { ...facet, aggregate: "mean", format: ".0p", title: facet_title + " %" },
+    ]
+  }
+};
 }
 
-const kaDSpec = scatterWithHistogramsSpec(
+// Facet must be a binary variable, for aggregate: "mean" to make sense as a %.
+const winFacet = {
+  field: "win", type: "quantitative",
+  scale: { scheme: "redyellowblue", extent: [0, 1] },
+};
+
+const kaD = scatterWithHistograms(
   { field: "d", type: "quantitative" }, "Deaths",
-  { field: "ka", type: "quantitative" }, "Kills + Assists");
-const kaDurationSpec = scatterWithHistogramsSpec(
+  { field: "ka", type: "quantitative" }, "Kills + Assists",
+  winFacet, "Win");
+
+const kaDuration = scatterWithHistograms(
   { field: "duration_minutes_bin", type: "nominal" }, "Duration [Minutes]",
-  { field: "ka", type: "quantitative" }, "Kills + Assists");
+  { field: "ka", type: "quantitative" }, "Kills + Assists",
+  winFacet, "Win");
 
 const Matches =
   Vue.component('ds-matches', {
@@ -112,12 +129,12 @@ const Matches =
 `,
     watch: {
       playerMatches: function (ms) {
-        this.showPlot("#ka_d", kaDSpec, ms);
-        this.showPlot("#ka_duration", kaDurationSpec, ms);
+        this.showPlot("#ka_d", kaD, ms);
+        this.showPlot("#ka_duration", kaDuration, ms);
       }
     },
     methods: {
-      showPlot: function (id, vlSpec, ms) {
+      showPlot: function (id, {vlSpec, tooltipOpts}, ms) {
         if (!(ms.length)) return;
 
         const sharedSpec = {
@@ -151,16 +168,7 @@ const Matches =
             console.error(error);
             return;
           }
-          vegaTooltip.vegaLite(result.view, spec, {
-            showAllFields: true, fields: [
-              { field: "ka", title: "Kills + Assists"},
-              { field: "d", title: "Deaths"},
-              { field: "duration_minutes_bin", title: "Duration [Minutes]" },
-              // https://github.com/vega/vega-tooltip/issues/129
-              { field: "count_*", aggregate: "count", title: "# Games"},
-              { field: "win", aggregate: "mean", format: ".0p", title: "Win %" },
-            ]
-          });
+          vegaTooltip.vegaLite(result.view, spec, tooltipOpts);
         });
       },
     },
@@ -186,7 +194,7 @@ const Matches =
           return ms.map(m => ({
             ...m,
             duration_minutes_bin: m.duration_minutes >= 90 ? "[90, inf)" :
-            `[${10 * Math.floor(m.duration_minutes / 10)}, ${10 * (1 + Math.floor(m.duration_minutes / 10))})`
+              `[${10 * Math.floor(m.duration_minutes / 10)}, ${10 * (1 + Math.floor(m.duration_minutes / 10))})`
           }));
         },
         default: []
