@@ -4,31 +4,31 @@ function scatterWithHistograms(x, x_title, y, y_title, facet, facet_title) {
 
   return {
     vlSpec: {
-    height: 600,
-    hconcat: [
-      {
-        height: scatterSize,
-        width: 40,
-        mark: "line",
-        description: "y-axis dash plot",
-        encoding: {
-          y: {
-            ...y,
-            axis: { ...emptyAxis, title: y_title, grid: true }
-          },
-          x: {
-            aggregate: "count",
-            type: "quantitative",
-            sort: "descending",
-            stack: "none",
-            axis: emptyAxis
-          },
-          color: facet,
-        }
-      },
-      {
-        vconcat: [
-          {
+      height: 600,
+      hconcat: [
+        {
+          height: scatterSize,
+          width: 40,
+          mark: "line",
+          description: "y-axis dash plot",
+          encoding: {
+            y: {
+              ...y,
+              axis: { ...emptyAxis, title: y_title, grid: true }
+            },
+            x: {
+              aggregate: "count",
+              type: "quantitative",
+              sort: "descending",
+              stack: "none",
+              axis: emptyAxis
+            },
+            color: facet,
+          }
+        },
+        {
+          vconcat: [
+            {
               width: scatterSize,
               height: scatterSize,
               mark: "point",
@@ -52,42 +52,42 @@ function scatterWithHistograms(x, x_title, y, y_title, facet, facet_title) {
                   legend: { title: "# Games" }
                 }
               },
-          },
-          {
-            height: 40,
-            width: scatterSize,
-            mark: "line",
-            description: "x-axis dash plot",
-            encoding: {
-              x: {
-                ...x,
-                axis: { ...emptyAxis, title: x_title, grid: true }
-              },
-              y: {
-                aggregate: "count",
-                type: "quantitative",
-                sort: "descending",
-                stack: "none",
-                axis: emptyAxis
-              },
-              color: facet,
+            },
+            {
+              height: 40,
+              width: scatterSize,
+              mark: "line",
+              description: "x-axis dash plot",
+              encoding: {
+                x: {
+                  ...x,
+                  axis: { ...emptyAxis, title: x_title, grid: true }
+                },
+                y: {
+                  aggregate: "count",
+                  type: "quantitative",
+                  sort: "descending",
+                  stack: "none",
+                  axis: emptyAxis
+                },
+                color: facet,
+              }
             }
-          }
-        ]
-      }
-    ],
-  },
-  tooltipOpts: {
-    showAllFields: true, fields: [
-      { field: "ka", title: "Kills + Assists" },
-      { field: "d", title: "Deaths" },
-      { field: "duration_minutes_bin", title: "Duration [Minutes]" },
-      // https://github.com/vega/vega-tooltip/issues/129
-      { field: "count_*", aggregate: "count", title: "# Games" },
-      { ...facet, aggregate: "mean", format: ".0p", title: facet_title + " %" },
-    ]
-  }
-};
+          ]
+        }
+      ],
+    },
+    tooltipOpts: {
+      showAllFields: true, fields: [
+        { field: "ka", title: "Kills + Assists" },
+        { field: "d", title: "Deaths" },
+        { field: "duration_minutes_bin", title: "Duration [Minutes]" },
+        // https://github.com/vega/vega-tooltip/issues/129
+        { field: "count_*", aggregate: "count", title: "# Games" },
+        { ...facet, aggregate: "mean", format: ".0p", title: facet_title + " %" },
+      ]
+    }
+  };
 }
 
 // Facet must be a binary variable, for aggregate: "mean" to make sense as a %.
@@ -134,7 +134,7 @@ const Matches =
       }
     },
     methods: {
-      showPlot: function (id, {vlSpec, tooltipOpts}, ms) {
+      showPlot: function (id, { vlSpec, tooltipOpts }, ms) {
         if (!(ms.length)) return;
 
         const sharedSpec = {
@@ -181,21 +181,21 @@ const Matches =
           if (!pid) return [];
           const resp = await fetch(`https://api.opendota.com/api/players/${pid}/matches?significant=1`);
           const origMatches = await resp.json();
-          const ms = origMatches.map(m => ({
-            ...m,
-            win: +(m.radiant_win === (m.player_slot < 128)),
-            duration_minutes: Math.floor(m.duration / 60),
+          return origMatches.map(m => {
+            const duration_minutes = Math.floor(m.duration / 60);
+            const duration_minutes_bin = duration_minutes >= 90 ? "[90, inf)" :
+              `[${10 * Math.floor(duration_minutes / 10)}, ${10 * (1 + Math.floor(duration_minutes / 10))})`;
 
-            ka: m.kills + m.assists,
-            d: m.deaths,
-            ka_d: (m.kills + m.assists) / (m.deaths || 1),
-          }));
+            return {
+              win: +(m.radiant_win === (m.player_slot < 128)),
+              duration_minutes,
+              duration_minutes_bin,
 
-          return ms.map(m => ({
-            ...m,
-            duration_minutes_bin: m.duration_minutes >= 90 ? "[90, inf)" :
-              `[${10 * Math.floor(m.duration_minutes / 10)}, ${10 * (1 + Math.floor(m.duration_minutes / 10))})`
-          }));
+              ka: m.kills + m.assists,
+              d: m.deaths,
+              ka_d: (m.kills + m.assists) / (m.deaths || 1),
+            };
+          });
         },
         default: []
       },
