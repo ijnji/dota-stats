@@ -106,7 +106,28 @@ const PATCHES = [
   }
 ];
 
+const KNOWN_ATTRIBUTES = [
+  'str',
+  'agi',
+  'int',
+  'Melee',
+  'Ranged',
+];
+
 // http://wiki.teamliquid.net/dota2/Hero_Roles
+const KNOWN_ROLES = [
+  'Carry',
+  'Nuker',
+  'Initiator',
+  'Disabler',
+  'Durable',
+  'Escape',
+  'Support',
+  'Pusher',
+  'Jungler',
+  'Complexity',
+];
+
 const ROLES = {
   'Abaddon': {
     'Carry': 1,

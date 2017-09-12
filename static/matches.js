@@ -91,6 +91,7 @@ function scatterWithHistograms(x, x_title, y, y_title, facet, facet_title) {
 }
 
 // Facet must be a binary variable, for aggregate: "mean" to make sense as a %.
+// TODO(cjiang): figure out if vega-lite can do nested field access instead.
 const winFacet = {
   field: "win", type: "quantitative",
   scale: { scheme: "redyellowblue", extent: [0, 1] },
@@ -173,6 +174,7 @@ const Matches =
       },
     },
 
+    props: ["heroes"],
     asyncComputed: {
       playerMatches: {
         async get() {
@@ -186,6 +188,15 @@ const Matches =
             const duration_minutes_bin = duration_minutes >= 90 ? "[90, inf)" :
               `[${10 * Math.floor(duration_minutes / 10)}, ${10 * (1 + Math.floor(duration_minutes / 10))})`;
 
+            const binary_hero_vars = {};
+            const hero = this.heroes[m.hero_id];
+            for (const attr of KNOWN_ATTRIBUTES) {
+              binary_hero_vars["bhv_" + attr] = hero.attributes.includes(attr) ? 1 : 0;
+            }
+            for (const role of KNOWN_ROLES) {
+              binary_hero_vars["bhv_" + role] = Object.keys(hero.roles).includes(role) ? 1 : 0;
+            }
+
             return {
               win: +(m.radiant_win === (m.player_slot < 128)),
               duration_minutes,
@@ -194,6 +205,8 @@ const Matches =
               ka: m.kills + m.assists,
               d: m.deaths,
               ka_d: (m.kills + m.assists) / (m.deaths || 1),
+
+              ...binary_hero_vars,
             };
           });
         },
